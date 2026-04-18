@@ -1,34 +1,59 @@
 from aiogram.utils.markdown import hbold, hlink
 
+
 def beautiful_procedure(row_data):
-    card = f'{hlink(title="{}[{}]".format(row_data.get("owner"), row_data.get("id")), url=row_data.get("link"))}\n' \
-               f'{hbold("Наименование: ")}{row_data.get("name")}\n' \
-               f'{hbold("НДС: ")}{"{} %".format(row_data.get("nds")) if row_data.get("useNDS") else "Нет"}\n' \
-               f'{hbold("Начало: ")}{row_data.get("reBiddingStart")}\n' \
-               f'{hbold("Окончание: ")}{row_data.get("reBiddingEnd")}\n🔥'
+    card = (
+        f'{hlink(title="{}[{}]".format(row_data.get("owner"), row_data.get("id")), url=row_data.get("link"))}\n'
+        f'{hbold("Наименование: ")}{row_data.get("name")}\n'
+        f'{hbold("НДС: ")}{"{} %".format(row_data.get("nds")) if row_data.get("useNDS") else "Нет"}\n'
+        f'{hbold("Начало: ")}{row_data.get("reBiddingStart")}\n'
+        f'{hbold("Окончание: ")}{row_data.get("reBiddingEnd")}\n🔥'
+    )
     return card
 
 
 def beautiful_positions(row_data):
-    id_msg = f'[{hbold("КЛ-"+ row_data["common_message"]["Id"])}]\n'
+    cm = row_data.get("common_message") or {}
+    id_val = cm.get("Id", "?")
+    id_msg = f'[{hbold("КЛ-" + str(id_val))}]\n'
 
-    if row_data['common_message']:
-        common = {k:v for k,v in row_data['common_message'].items() if v}
-        common_msg = ''
-        if common.get('ownerSrok'):
+    common_msg = ""
+    if cm:
+        common = {k: v for k, v in cm.items() if v and k != "Id"}
+        if common.get("ownerSrok"):
             common_msg += f'{hbold("Условия оплаты: ")}{common.get("ownerSrok")}\n'
-        if common.get('ownerSklad'):
+        if common.get("ownerSklad"):
             common_msg += f'{hbold("Сроки поставки: ")}{common.get("ownerSklad")}\n'
-        if common.get('deliveryPlace'):
-            common_msg += f'{hbold("deliveryPlace: ")}{common.get("deliveryPlace")}\n'
+        if common.get("deliveryPlace"):
+            common_msg += f'{hbold("Место поставки: ")}{common.get("deliveryPlace")}\n'
 
-    if row_data['positions']:
-        position_msg = ''
-        for pos in row_data['positions']:
-            position_msg += f'{hbold("Наименование: ")}{pos.get("name")}\n' \
-                            f'{hbold("Количество: ")}{pos.get("totalCount")} {pos.get("unit")}\n' \
-                            f'{hbold("Цена: ")}{pos.get("price")}\n\n'
+    position_msg = ""
+    for pos in row_data.get("positions") or []:
+        position_msg += (
+            f'{hbold("Наименование: ")}{pos.get("name")}\n'
+            f'{hbold("Количество: ")}{pos.get("totalCount")} {pos.get("unit")}\n'
+            f'{hbold("Цена: ")}{pos.get("price")}\n\n'
+        )
 
-    print_msg = f'{id_msg}\nУсловия:\n{common_msg}\nПозиции:\n{position_msg}'
-    return print_msg
+    if not position_msg.strip():
+        position_msg = "Позиции не указаны.\n"
 
+    return f"{id_msg}\nУсловия:\n{common_msg}\nПозиции:\n{position_msg}"
+
+
+def split_telegram_messages(text: str, max_len: int = 4096) -> list[str]:
+    """Split plain or HTML text into chunks not exceeding Telegram message limit."""
+    if len(text) <= max_len:
+        return [text]
+    chunks: list[str] = []
+    rest = text
+    while rest:
+        if len(rest) <= max_len:
+            chunks.append(rest)
+            break
+        split_at = rest.rfind("\n", 0, max_len)
+        if split_at <= 0:
+            split_at = max_len
+        chunks.append(rest[:split_at])
+        rest = rest[split_at:].lstrip("\n")
+    return chunks

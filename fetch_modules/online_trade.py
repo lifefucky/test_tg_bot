@@ -1,110 +1,112 @@
-from typing import List
+from typing import Any, List, Optional
 
 import requests
-import pandas
 
-sarmat_categories = {
-    'Бытовая химия': [1811],
-    'Хозтовары': [1817, 1794]
-}
+PROCEDURES_URL = "https://api.onlc.ru/purchases/v1/public/procedures"
+POSITIONS_URL_TEMPLATE = "https://api.onlc.ru/purchases/v1/public/procedures/{}/positions"
 
-my_categories = {
-    'Автоматизация бизнес-процессов': 1131,
-    'Компьютеры': 1117
-}
 
 class OnlineContract:
-    def __init__(self):
-        self.categories = []
+    procedures_kc = [
+        "id",
+        "type",
+        "name",
+        "date",
+        "status",
+        "useNDS",
+        "nds",
+        "reBiddingStart",
+        "reBiddingEnd",
+        "owner",
+    ]
 
-        self.procedures_url = "https://api.onlc.ru/purchases/v1/public/procedures"
-        self.procedures_params = {}
-        self.procedures_kc = ['id', 'type', 'name', 'date', 'status', 'useNDS', 'nds', 'reBiddingStart', 'reBiddingEnd',
-                            'owner']
+    def __init__(self) -> None:
+        self.procedures_params: dict[str, Any] = {}
 
-        self.positions_url = "https://api.onlc.ru/purchases/v1/public/procedures/|/positions"
-
-    def build_procedures_params(self, categories):
-        params = {'total': True,
-                  'limit': 100,
-                  'offset': 0,
-                  'include': 'owner',
-                  'sort': '-startAt',
-                  'filters[status]': 1,
-                  'filters[searchType]': 2,
-                  'filters[categories]': categories}
-        self.procedures_params = params
+    def build_procedures_params(self, categories: List[str]) -> "OnlineContract":
+        self.procedures_params = {
+            "total": True,
+            "limit": 100,
+            "offset": 0,
+            "include": "owner",
+            "sort": "-startAt",
+            "filters[status]": 1,
+            "filters[searchType]": 2,
+            "filters[categories]": categories,
+        }
         return self
 
-    def fetch_current_procedures(self):
-        response = requests.get(self.procedures_url, params=self.procedures_params)
-        data = {}
-        if response.status_code == 200:
-            data = response.json()
-        else:
-            print(f"Request failed with status code {response.text}")
-        return data
+    def fetch_current_procedures(self) -> dict[str, Any]:
+        response = requests.get(PROCEDURES_URL, params=self.procedures_params, timeout=60)
+        if response.status_code != 200:
+            return {}
+        try:
+            return response.json()
+        except ValueError:
+            return {}
 
-    def get_procedures(self, categories: List):
+    def get_procedures(self, categories: List[str]) -> Optional[List[dict[str, Any]]]:
+        """
+        Returns None if the API request failed or the response was invalid.
+        Returns [] if the request succeeded but there are no procedures.
+        """
         self.build_procedures_params(categories)
-        data = self.fetch_current_procedures()
+        raw = self.fetch_current_procedures()
+        if not raw:
+            return None
+        rows = raw.get("data")
+        if rows is None:
+            return None
+        if not rows:
+            return []
 
-        df = pandas.DataFrame()
+        out: list[dict[str, Any]] = []
+        for row in rows:
+            owner = row.get("owner")
+            owner_name = owner.get("name", "") if isinstance(owner, dict) else ""
+            item = {k: row.get(k) for k in self.procedures_kc if k != "owner"}
+            item["owner"] = owner_name
+            pid = row.get("id")
+            item["link"] = f"https://onlinecontract.ru/tenders/{pid}"
+            out.append(item)
+        return out
 
-        if data['data']:
-            df = pandas.DataFrame(data['data'])
-            df['owner'] = df['owner'].apply(lambda x: x['name'])
-            df = df[self.procedures_kc]
+    @staticmethod
+    def fetch_positions_for_procedure(procedure_id: str) -> dict[str, Any]:
+        url = POSITIONS_URL_TEMPLATE.format(procedure_id)
+        response = requests.get(url, timeout=60)
+        if response.status_code != 200:
+            return {}
+        try:
+            return response.json()
+        except ValueError:
+            return {}
 
-            df['link'] = df['id'].apply(lambda x: f"https://onlinecontract.ru/tenders/{x}")
-        return df.to_dict(orient='records')
+    def get_positions(self, procedure_id: str) -> Optional[dict[str, Any]]:
+        data = self.fetch_positions_for_procedure(procedure_id)
+        if not data:
+            return None
+        rows = data.get("data")
+        if rows is None:
+            return None
+        if not rows:
+            common_message_unique: dict[str, Any] = {"Id": str(procedure_id)}
+            return {"common_message": common_message_unique, "positions": []}
 
-    def build_positions_url(self, procedure_id):
-        url_list = self.positions_url.split('|')
-        url_list.insert(1, str(procedure_id))
-        self.positions_url = ''.join(url_list)
-        return self
+        position_keys = ["name", "totalCount", "unit", "price"]
+        common_message_keys = ["ownerSrok", "ownerSklad", "deliveryPlace"]
 
-    def fetch_positions(self):
-        response = requests.get(self.positions_url)
-        data = {}
-        if response.status_code == 200:
-            data = response.json()
+        common_message = [{key: row.get(key) for key in common_message_keys} for row in rows]
+        common_message_unique = list({frozenset(d.items()): d for d in common_message}.values())
+
+        if len(common_message_unique) == 1:
+            common_message_unique_dict: Any = common_message_unique[0]
         else:
-            print(f"Request failed with status code {response.text}")
-        return data
+            common_message_unique_dict = {}
+            position_keys = position_keys + common_message_keys
 
-    def get_positions(self, procedure_id):
-        self.build_positions_url(procedure_id)
-        data = self.fetch_positions()
+        if isinstance(common_message_unique_dict, dict):
+            common_message_unique_dict.setdefault("Id", str(procedure_id))
 
-        position_keys = ['name', 'totalCount', 'unit', 'price']
-        common_message_keys = ['ownerSrok', 'ownerSklad', 'deliveryPlace']
-
-        if data:
-            data = data['data']
-
-            common_message = [{key: row[key] for key in common_message_keys} for row in data]
-            common_message_unique = {frozenset(d.items()): d for d in common_message}.values()
-            common_message_unique = list(common_message_unique)
-
-            if len(common_message_unique) == 1:
-                common_message_unique = common_message_unique[0]
-            else:
-                common_message_unique = {}
-                position_keys += common_message_keys
-
-            common_message_unique.setdefault('Id', str(procedure_id))
-
-            positions = [{key: row[key] for key in position_keys} for row in data]
-            data = {'common_message': common_message_unique, 'positions': positions}
-        return data
-
-
-
-'''
-online_cr = OnlineContract()
-data = online_cr.get_positions(procedure_id=513323)
-
-print(data)
-'''
+        positions = [{key: row.get(key) for key in position_keys} for row in rows]
+        return {"common_message": common_message_unique_dict, "positions": positions}

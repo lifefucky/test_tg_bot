@@ -1,2 +1,2 @@
-from utils.beautiful_msg import beautiful_positions, beautiful_procedure
+from utils.beautiful_msg import beautiful_positions, beautiful_procedure, split_telegram_messages
 from utils.categories import onlc_text_and_data

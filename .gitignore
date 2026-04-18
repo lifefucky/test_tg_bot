@@ -1,1 +1,11 @@
 trash.py
+
+__pycache__/
+*.py[cod]
+
+misc/env.py
+.env
+
+AGENTS.md
+
+.DS_Store
