@@ -52,8 +52,11 @@ def split_telegram_messages(text: str, max_len: int = 4096) -> list[str]:
             chunks.append(rest)
             break
         split_at = rest.rfind("\n", 0, max_len)
-        if split_at <= 0:
-            split_at = max_len
-        chunks.append(rest[:split_at])
-        rest = rest[split_at:].lstrip("\n")
+        if split_at == -1:
+            chunks.append(rest[:max_len])
+            rest = rest[max_len:]
+        else:
+            # split_at — индекс «своего» \n; включаем его в чанк, иначе он теряется
+            chunks.append(rest[: split_at + 1])
+            rest = rest[split_at + 1 :]
     return chunks

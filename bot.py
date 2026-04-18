@@ -11,6 +11,7 @@ from utils import (
     onlc_text_and_data,
     split_telegram_messages,
 )
+from utils.callbacks import parse_pagination_callback
 
 PAGE_SIZE = 7
 SEND_DELAY = 0.06
@@ -135,8 +136,7 @@ async def _render_procedure_chunk(chat_id: int, cat_str: str, offset: int) -> No
 async def on_procedures_more(query: types.CallbackQuery):
     await query.answer()
     try:
-        _, off_s, cat_str = query.data.split("|", 2)
-        offset = int(off_s)
+        offset, cat_str = parse_pagination_callback(query.data)
     except (ValueError, IndexError):
         await bot.send_message(query.from_user.id, "Некорректная кнопка. Нажмите /start.")
         return

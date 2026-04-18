@@ -9,6 +9,7 @@
 | [`__init__.py`](../utils/__init__.py) | Собирает публичный API пакета: функции из **`beautiful_msg`**, **`onlc_text_and_data`** из **`categories`**. |
 | [`beautiful_msg.py`](../utils/beautiful_msg.py) | Форматирование карточек процедуры и конкурсного листа позиций; разбиение текста на части по лимиту Telegram. |
 | [`categories.py`](../utils/categories.py) | Кортеж **`onlc_text_and_data`**: подпись кнопки → **`callback_data`** (строка с id категорий API через запятую). |
+| [`callbacks.py`](../utils/callbacks.py) | Разбор **`m|<offset>|<cat_str>`** для кнопки «Показать ещё» (`parse_pagination_callback`). |
 
 ## Реализация
 
