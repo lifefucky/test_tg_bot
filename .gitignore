@@ -9,3 +9,8 @@ misc/env.py
 AGENTS.md
 
 .DS_Store
+
+plans/
+
+# Local SQLite (optional file DB; see DATABASE_URL)
+data/

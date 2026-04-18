@@ -19,6 +19,7 @@ pytest
 | `test_online_trade.py` | `OnlineContract` с моком `requests.get` |
 | `test_categories.py` | Согласованность `onlc_text_and_data` и `CATEGORY_CALLBACK_IDS` |
 | `test_callbacks.py` | Парсинг callback пагинации |
+| `test_db_repositories.py` | Репозитории БД (см. [`database.md`](database.md)) |
 
 Настройки: [`pytest.ini`](../pytest.ini). Dev-зависимости: [`requirements-dev.txt`](../requirements-dev.txt).
 
@@ -34,3 +35,4 @@ pytest
 
 - Зависимости и версия Python: [`requirements.txt`](../requirements.txt)
 - Поведение бота: [`architecture.md`](architecture.md), [`bot.py`](../bot.py)
+- БД и тесты репозиториев: [`database.md`](database.md)

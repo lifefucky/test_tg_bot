@@ -1,3 +1,9 @@
-# Aiogram 2.x pulls aiohttp; use Python 3.10–3.12 for reliable wheels (3.14 may need newer aiogram/aiohttp).
-aiogram==2.25.2
+# Aiogram 3.x pulls aiohttp; use Python 3.10–3.12 for reliable wheels (3.14 may need newer aiogram/aiohttp).
+aiogram==3.27.0
 requests>=2.31.0,<3
+
+# DB: async SQLAlchemy + SQLite; Pydantic for API/schemas; Alembic for migrations
+sqlalchemy[asyncio]>=2.0,<3
+aiosqlite>=0.20,<1
+alembic>=1.13,<2
+pydantic>=2,<3

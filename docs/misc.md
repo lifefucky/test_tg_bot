@@ -6,8 +6,9 @@
 
 | Файл | Роль |
 |------|------|
-| [`__init__.py`](../misc/__init__.py) | Реэкспорт: `from misc.env import TgKeys` — удобный импорт **`from misc import TgKeys`**. |
+| [`__init__.py`](../misc/__init__.py) | Ленивый доступ к **`TgKeys`** через **`__getattr__`**, чтобы импорт подмодулей (например **`misc.db_url`**) не требовал **`TOKEN`**. |
 | [`env.py`](../misc/env.py) | Чтение **`TOKEN`** из **`os.environ`**, проверка на непустое значение, класс **`TgKeys`** с атрибутом **`TOKEN: Final`**. |
+| [`db_url.py`](../misc/db_url.py) | Чтение **`DATABASE_URL`** из окружения (значение по умолчанию — in-memory SQLite). Полное описание стека и схемы — [`database.md`](database.md). |
 
 ## Реализация
 
